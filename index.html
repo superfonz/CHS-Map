@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css-zoomhome/leaflet.zoomhome.css">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/leaflet-heat.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="https://storage.cloud.google.com/chs_map/Points_2.js"></script>
+        
+        <script src="js-extra/heatmap.js"></script>
+        <script src="js-zoomhome/leaflet.zoomhome.min.js"></script>
+        <script>
+            ;(function (name, context, factory) {
+        // Supports UMD. AMD, CommonJS/Node.js and browser context
+    if (typeof module !== "undefined" && module.exports) {
+    module.exports = factory(
+      require('heatmap.js'),
+      require('leaflet')
+    );
+  } else if (typeof define === "function" && define.amd) {
+    define(['heatmap.js', 'leaflet'], factory);
+  } else {
+    // browser globals
+    if (typeof window.h337 === 'undefined') {
+      throw new Error('heatmap.js must be loaded before the leaflet heatmap plugin');
+    }
+    if (typeof window.L === 'undefined') {
+      throw new Error('Leaflet must be loaded before the leaflet heatmap plugin');
+    }
+    context[name] = factory(window.h337, window.L);
+  }
+
+})("HeatmapOverlay", this, function (h337, L) {
+  'use strict';
+
+  // Leaflet < 0.8 compatibility
+  if (typeof L.Layer === 'undefined') {
+    L.Layer = L.Class;
+  }
+});</script>
+        
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[48.2413, -128.4385],[22.5845, -72.0925]]);
+        var zoomHome = L.Control.zoomHome();
+            zoomHome.addTo(map);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+            
+        var legend = L.control({ position: "bottomleft" });
+        legend.onAdd = function(map) {
+            var div = L.DomUtil.create("div", "legend");
+            div.innerHTML += '<h4 style="background: #FFFFF">Legend</h4>';
+            div.innerHTML += '<i style="background: #008000"></i><span>Campaign Live</span><br>';
+            div.innerHTML += '<i style="background: #0000FF"></i><span>Media Planning</span><br>';
+            div.innerHTML += '<i style="background: #FFFF00"></i><span>Call scheduled</span><br>';
+            div.innerHTML += '<i style="background: #D3D3D3"></i><span>No Activity </span><br>';
+            return div;
+        };
+            legend.addTo(map);
+        
+            // control that shows state info on hover
+	var info = L.control();
+
+	info.onAdd = function (map) {
+		this._div = L.DomUtil.create('div', 'info');
+		this.update();
+		return this._div;
+	};
+
+	info.update = function (props) {
+		this._div.innerHTML = '<img src=\"img/CHS_logo.png\" style=\"width:185px;display:block;\" class=\"mb-4\">' +  (props ?
+			'<b>' + props.Hospital + '</b><br />' + props.Status
+			: 'Hover over a hospital');
+	};
+
+	info.addTo(map);
+            
+        var button = L.control({ position: "topright"});
+        button.onAdd = function(map) {
+                var button = L.DomUtil.create("button", "btn btn-primary");
+                L.DomEvent.addListener(button, 'click', togglemap)
+                button.innerHTML += 'Toggle Map'
+                return button;
+            }
+            button.addTo(map);            
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        }); 
+            
+        var BlackMap = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png', { // black map overlay
+	       opacity: 1.0, 
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19,
+	       attribution: ''
+            }); 
+        layer_OpenStreetMap_0.addTo(map);
+        map.createPane('pane_Heatmap_1');
+        map.getPane('pane_Heatmap_1').style.zIndex = 401;
+        map.getPane('pane_Heatmap_1').style['mix-blend-mode'] = 'multiply';
+        window.toggle = true;
+            
+        function togglemap() {
+          if(!toggle) {
+            map.removeLayer(BlackMap);
+            map.addLayer(layer_OpenStreetMap_0);
+          } else {
+              map.removeLayer(layer_OpenStreetMap_0);
+            map.addLayer(BlackMap);
+          }
+          toggle = !toggle;
+        }
+        
+        function highlightFeature(e) {
+            var layer = e.target;
+
+            layer.setStyle({
+                radius: 10,
+                color: '#666',
+                dashArray: '',
+                fillOpacity: 0.7
+            });
+
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                layer.bringToFront();
+            }
+            info.update(layer.feature.properties);
+        }
+        function resetHighlight(e) {
+            var layer = e.target;
+
+            layer.setStyle({
+                radius: 4,
+                color: '#000',
+                dashArray: '',
+                fillOpacity: 1
+            });
+
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                layer.bringToFront();
+            }
+            info.update();
+        }
+
+        function pop_Points_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">City</th>\
+                        <td>' + (feature.properties['City'] !== null ? Autolinker.link(feature.properties['City'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">State</th>\
+                        <td>' + (feature.properties['State'] !== null ? Autolinker.link(feature.properties['State'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Status</th>\
+                        <td>' + (feature.properties['Status'] !== null ? Autolinker.link(feature.properties['Status'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                     <tr>\
+                        <th scope="row">Hospital</th>\
+                        <td>' + (feature.properties['Hospital'] !== null ? Autolinker.link(feature.properties['Hospital'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">POC</th>\
+                        <td>' + (feature.properties['POC'] !== null ? Autolinker.link(feature.properties['POC'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Notes</th>\
+                        <td>' + (feature.properties['Notes'] !== null ? Autolinker.link(feature.properties['Notes'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                </table>';
+            
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight
+            });
+
+        }
+        function style_Points_2(color, rad) {
+            return {
+                pane: 'pane_Points_2',
+                radius: rad,
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: color,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Points_2');
+        map.getPane('pane_Points_2').style.zIndex = 402;
+        map.getPane('pane_Points_2').style['mix-blend-mode'] = 'normal';
+        var layer_Points_2 = new L.geoJson(json_Points_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Points_2',
+            layerName: 'layer_Points_2',
+            pane: 'pane_Points_2',
+            onEachFeature: pop_Points_2,
+            mouseover: highlightFeature,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                if (feature.properties['Status'] == "Campaigns Live"){
+                return L.circleMarker(latlng, style_Points_2('rgba(0, 128, 0, 1)', 4));
+                }
+                else if (feature.properties['Status'] == "Media Plan Sent"){
+                return L.circleMarker(latlng, style_Points_2('rgba(0, 0, 255, 1)', 4));
+                }
+                else if (feature.properties['Status'] == "Kickoff Call Scheduled"){
+                return L.circleMarker(latlng, style_Points_2('rgba(255, 255, 0, 1)', 4));
+                }
+                else {
+                return L.circleMarker(latlng, style_Points_2('rgba(211, 211, 211, 1)', 4));    
+                }
+            },
+        });
+            
+        var Points_2 = new L.featureGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        Points_2.addLayer(layer_Points_2);
+
+        bounds_group.addLayer(layer_Points_2);
+        Points_2.addTo(map);
+        
+        setBounds();
+        </script>
+        <style>
+            /*Legend specific*/
+            .legend {
+              padding: 6px 8px;
+              font: 14px Arial, Helvetica, sans-serif;
+              background: rgba(255,255,255,0.8);
+              box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+              /*border-radius: 5px;*/
+              line-height: 24px;
+              color: rgba(0, 0, 0, 1);
+              border-radius: 5px;
+                
+            }
+            .legend h4 {
+              text-align: center;
+              font-size: 16px;
+              margin: 2px 12px 8px;
+              color: rgba(0, 0, 0, 1);
+            }
+
+            .legend span {
+              position: relative;
+              bottom: 3px;
+            }
+
+            .legend i {
+              width: 18px;
+              height: 18px;
+              float: left;
+              margin: 0 8px 0 0;
+              opacity: 0.7;
+              border-radius: 50%;
+              border-style: solid;
+              border-width: 1px;
+              border-color: black;
+            }
+            .leaflet-popup-content-wrapper {
+                background: white;
+            }
+            .togglebutton{
+                  background-color: #e7e7e7;
+                  border-style: solid;
+                  border-width: 1px;
+                  border-color: black;
+                  opacity: 50%;
+                  color: black;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;
+                
+            }
+            .info {
+                padding: 6px 8px;
+                font: 14px/16px Arial, Helvetica, sans-serif;
+                background: rgba(255,255,255,0.8);
+                box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                border-radius: 5px;
+            }
+            .info h4 {
+                margin: 0 0 5px;
+                color: #0b6c68;
+            }
+        </style>
+    </body>
+</html>
