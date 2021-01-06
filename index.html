@@ -36,7 +36,7 @@
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
         <script src="js/leaflet.markercluster.js"></script>
-        <script src="https://storage.cloud.google.com/chs_map/Points_2.js"></script>
+        <script src="https://storage.googleapis.com/chs_map/V2/Points_2.js"></script>
         
         <script src="js-extra/heatmap.js"></script>
         <script src="js-zoomhome/leaflet.zoomhome.min.js"></script>
@@ -85,15 +85,40 @@
         var legend = L.control({ position: "bottomleft" });
         legend.onAdd = function(map) {
             var div = L.DomUtil.create("div", "legend");
-            div.innerHTML += '<h4 style="background: #FFFFF">Legend</h4>';
-            div.innerHTML += '<i style="background: #008000"></i><span>Campaign Live</span><br>';
-            div.innerHTML += '<i style="background: #0000FF"></i><span>Media Planning</span><br>';
-            div.innerHTML += '<i style="background: #FFFF00"></i><span>Call scheduled</span><br>';
-            div.innerHTML += '<i style="background: #D3D3D3"></i><span>No Activity </span><br>';
+            div.innerHTML += '<h4 style="background: #FFFFF" class="Leg-C" onclick="addactive();">Legend</h4>';
+                        
+            div.innerHTML += '<div id="legend-id" class="legend-wrapper"><i style="background: #9400d3"></i><span class="COH-C">Campaigns On Hold</span><br>'+
+            '<i style="background: #008000"></i><span class="CL-C">Campaign Live</span><br>'+
+            '<i style="background: #00FF80"></i><span class="AFF-C">Awaiting Facility Feedback</span><br>'+
+            '<i style="background: #00FFFF"></i><span class="MPS-C">Media Plan Sent</span><br>'+
+            '<i style="background: #0000FF"></i><span class="CMP-C">Creating Media Plan</span><br>'+
+            '<i style="background: #0080FF"></i><span class="FKCC-C">Facility Kickoff Call Completed - No Activity</span><br>'+
+            '<i style="background: #FFFF00"></i><span class="FKOS-C">Facility Kick-Off Scheduled</span><br>'+
+            '<i style="background: #FF8000"></i><span class="JRKO-C">Joined Regional Kick-Off - No Activity</span><br>'+
+            '<i style="background: #FF0000"></i><span class="RKCS-C">Regional Kickoff Call Scheduled</span><br>'+
+            '<i style="background: #D3D3D3"></i><span class="NA-C">No Activity </span><br></div>';
+            
             return div;
         };
             legend.addTo(map);
-        
+            
+        function legendlayer(ele, bol, layerz){
+            var doc = document.getElementsByClassName(ele)[0];
+            doc.addEventListener('click',function(){
+                if(bol){
+                    Points_2.removeLayer(layerz);
+                    doc.style.color = 'red';
+                }
+                else {
+                    Points_2.addLayer(layerz);
+                    doc.style.color = 'black';
+                }
+                bol = !bol;
+            });
+        }
+              
+            
+            
             // control that shows state info on hover
 	var info = L.control();
 
@@ -152,7 +177,7 @@
           }
           toggle = !toggle;
         }
-        
+            
         function highlightFeature(e) {
             var layer = e.target;
 
@@ -187,6 +212,10 @@
         function pop_Points_2(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
+                        <th scope="row">Hospital</th>\
+                        <td>' + (feature.properties['Hospital'] !== null ? Autolinker.link(feature.properties['Hospital'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
                         <th scope="row">City</th>\
                         <td>' + (feature.properties['City'] !== null ? Autolinker.link(feature.properties['City'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
                     </tr>\
@@ -198,17 +227,37 @@
                         <th scope="row">Status</th>\
                         <td>' + (feature.properties['Status'] !== null ? Autolinker.link(feature.properties['Status'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
                     </tr>\
-                     <tr>\
-                        <th scope="row">Hospital</th>\
-                        <td>' + (feature.properties['Hospital'] !== null ? Autolinker.link(feature.properties['Hospital'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    <tr>\
+                        <th style="white-space: nowrap;" scope="row">Facility Specific Kick-Off Date</th>\
+                        <td>' + (feature.properties['FS_Kickoff_Date'] !== null ? Autolinker.link(feature.properties['FS_Kickoff_Date'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th style="white-space: nowrap;" scope="row">Regional Kick-Off Date</th>\
+                        <td>' + (feature.properties['Regional_Kickoff_Date'] !== null ? Autolinker.link(feature.properties['Regional_Kickoff_Date'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th style="white-space: nowrap;" scope="row">HireClix Main POC</th>\
+                        <td>' + (feature.properties['HC_Main_POC'] !== null ? Autolinker.link(feature.properties['HC_Main_POC'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th style="white-space: nowrap;" scope="row">HireClix Secondary POC</th>\
+                        <td>' + (feature.properties['HC_Seco_POC'] !== null ? Autolinker.link(feature.properties['HC_Seco_POC'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
                     </tr>\
                     <tr>\
                         <th scope="row">POC</th>\
                         <td>' + (feature.properties['POC'] !== null ? Autolinker.link(feature.properties['POC'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
                     </tr>\
                     <tr>\
+                        <th scope="row">Marketing POC</th>\
+                        <td>' + (feature.properties['Marketing_POC'] !== null ? Autolinker.link(feature.properties['Marketing_POC'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
                         <th scope="row">Notes</th>\
                         <td>' + (feature.properties['Notes'] !== null ? Autolinker.link(feature.properties['Notes'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Region</th>\
+                        <td>' + (feature.properties['Region'] !== null ? Autolinker.link(feature.properties['Region'].toLocaleString(), {truncate: {length: 30, location: 'smart'}}) : '') + '</td>\
                     </tr>\
                 </table>';
             
@@ -238,7 +287,8 @@
         map.createPane('pane_Points_2');
         map.getPane('pane_Points_2').style.zIndex = 402;
         map.getPane('pane_Points_2').style['mix-blend-mode'] = 'normal';
-        var layer_Points_2 = new L.geoJson(json_Points_2, {
+        function points(name, rgb) {
+            var layer = new L.geoJson(json_Points_2, {
             attribution: '',
             interactive: true,
             dataVar: 'json_Points_2',
@@ -251,32 +301,93 @@
                     feature: feature,
                     variables: {}
                 };
-                if (feature.properties['Status'] == "Campaigns Live"){
-                return L.circleMarker(latlng, style_Points_2('rgba(0, 128, 0, 1)', 4));
-                }
-                else if (feature.properties['Status'] == "Media Plan Sent"){
-                return L.circleMarker(latlng, style_Points_2('rgba(0, 0, 255, 1)', 4));
-                }
-                else if (feature.properties['Status'] == "Kickoff Call Scheduled"){
-                return L.circleMarker(latlng, style_Points_2('rgba(255, 255, 0, 1)', 4));
-                }
-                else {
-                return L.circleMarker(latlng, style_Points_2('rgba(211, 211, 211, 1)', 4));    
+                if (feature.properties['Status'] ==  name){
+                    return L.circleMarker(latlng, style_Points_2(rgb, 4));
                 }
             },
         });
+        return layer;
+        }
             
-        var Points_2 = new L.featureGroup({showCoverageOnHover: false,
-            spiderfyDistanceMultiplier: 2});
-        Points_2.addLayer(layer_Points_2);
-
-        bounds_group.addLayer(layer_Points_2);
-        Points_2.addTo(map);
+        var Points_2 = new L.featureGroup({showCoverageOnHover: false, spiderfyDistanceMultiplier: 2});
+        var COH = points('Campaigns On Hold','rgba(148,0,211, 1)');
+        var CL = points('Campaigns Live','rgba(0, 128, 0, 1)');
+        var AFF = points('Awaiting Facility Feedback','rgba(0, 255, 128, 1)');   
+        var MPS = points('Media Plan Sent','rgba(0, 255, 255, 1)');
+        var CMP = points('Creating Media Plan','rgba(0, 0, 255, 1)');
+        var FKCC = points('Facility Kickoff Call Completed - No Activity','rgba(0, 128, 255, 1)');
+        var FKOS = points('Facility Kick-Off Scheduled', 'rgba(255, 255, 0, 1)'); 
+        var JRKO = points('Joined Regional Kick-Off - No Activity', 'rgba(255, 128, 0, 1)');  
+        var RKCS = points('Regional Kickoff Call Scheduled','rgba(255, 0, 0, 1)');
+        var NA = points('No Activity','rgba(211, 211, 211, 1)');
+         
+        window.coh = true;
+        window.cl = true;
+        window.aff = true;
+        window.mps = true;
+        window.cmp = true;
+        window.Fkcc = true;
+        window.fkos = true;
+        window.jrko = true;
+        window.rkcs = true;
+        window.na = true;
+            
+        legendlayer('COH-C', coh, COH);
+        legendlayer('CL-C', cl, CL);
+        legendlayer('AFF-C', aff, AFF);
+        legendlayer('MPS-C', mps, MPS);
+        legendlayer('CMP-C', cmp, CMP);
+        legendlayer('FKCC-C', Fkcc, FKCC);
+        legendlayer('FKOS-C', fkos, FKOS);
+        legendlayer('JRKO-C', jrko, JRKO);
+        legendlayer('RKCS-C', rkcs, RKCS);
+        legendlayer('NA-C', na, NA);    
         
+        Points_2.addLayer(COH);
+        Points_2.addLayer(CL);
+        Points_2.addLayer(AFF);
+        Points_2.addLayer(MPS);
+        Points_2.addLayer(CMP);
+        Points_2.addLayer(FKCC);
+        Points_2.addLayer(FKOS);
+        Points_2.addLayer(JRKO);
+        Points_2.addLayer(RKCS);
+        Points_2.addLayer(NA);
+        
+        bounds_group.addLayer(COH);
+        bounds_group.addLayer(CL);        
+        bounds_group.addLayer(AFF);
+        bounds_group.addLayer(MPS);
+        bounds_group.addLayer(CMP);
+        bounds_group.addLayer(FKCC);
+        bounds_group.addLayer(FKOS);        
+        bounds_group.addLayer(JRKO);
+        bounds_group.addLayer(RKCS);
+        bounds_group.addLayer(NA);
+            
+        Points_2.addTo(map);
         setBounds();
+        </script>
+        <script>
+            function addactive(){
+            var element = document.getElementById("legend-id");
+            if (element.className == "legend-wrapper active"){
+                element.classList.remove("active");
+                }
+            else if(element.className == "legend-wrapper"){
+                element.classList.add("active");
+                }
+            }
         </script>
         <style>
             /*Legend specific*/
+            .legend-wrapper {
+                display: none;
+                
+            }
+            .legend-wrapper.active {
+                display: block;
+            }
             .legend {
               padding: 6px 8px;
               font: 14px Arial, Helvetica, sans-serif;
@@ -286,6 +397,7 @@
               line-height: 24px;
               color: rgba(0, 0, 0, 1);
               border-radius: 5px;
+              transition: all 0.5s ease;
                 
             }
             .legend h4 {
@@ -298,6 +410,9 @@
             .legend span {
               position: relative;
               bottom: 3px;
+            }
+            .legend span:hover {
+              color: gray;
             }
 
             .legend i {
